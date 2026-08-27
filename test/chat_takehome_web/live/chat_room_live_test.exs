@@ -62,6 +62,37 @@ defmodule ChatTakehomeWeb.ChatRoomLiveTest do
     assert Users.get_user_by_session_token(user.session_token) == user
   end
 
+  test "retains a verified user's message history after rejoining", %{
+    conn: conn,
+    current_user: user
+  } do
+    body = "Rejoin history #{System.unique_integer([:positive])}"
+    {:ok, chat_view, _html} = live(conn, ~p"/chat")
+
+    chat_view
+    |> form("#message-form", message: %{body: body})
+    |> render_submit()
+
+    _ = :sys.get_state(chat_view.pid)
+    message = Enum.find(Chat.list_messages(), &(&1.body == body))
+
+    assert message.user == user
+
+    assert {:ok, home_view, _html} =
+             chat_view
+             |> element("#leave-chat")
+             |> render_click()
+             |> follow_redirect(conn, ~p"/home")
+
+    assert {:ok, rejoined_chat_view, _html} =
+             home_view
+             |> element("#rejoin-chat")
+             |> render_click()
+             |> follow_redirect(conn, ~p"/chat")
+
+    assert has_element?(rejoined_chat_view, "#messages-#{message.id}")
+  end
+
   test "renders saved messages", %{conn: conn} do
     user = user_fixture()
     {:ok, message} = Chat.create_message(user, %{body: "A saved message"})
