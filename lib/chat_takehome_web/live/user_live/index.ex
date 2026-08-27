@@ -2,6 +2,7 @@ defmodule ChatTakehomeWeb.UserLive.Index do
   use ChatTakehomeWeb, :live_view
 
   alias ChatTakehome.Users
+  alias ChatTakehomeWeb.Presence
 
   @impl true
   def render(assigns) do
@@ -36,9 +37,18 @@ defmodule ChatTakehomeWeb.UserLive.Index do
 
   @impl true
   def mount(_params, _session, socket) do
+    socket =
+      if connected?(socket) do
+        Phoenix.PubSub.subscribe(ChatTakehome.PubSub, Presence.chat_room_topic())
+        socket
+      else
+        socket
+      end
+
     {:ok,
      socket
      |> assign(:page_title, "Listing Users")
+     |> assign(:online_session_tokens, online_session_tokens())
      |> stream(:users, list_users())}
   end
 
@@ -50,7 +60,24 @@ defmodule ChatTakehomeWeb.UserLive.Index do
     {:noreply, stream_delete(socket, :users, user)}
   end
 
+  @impl true
+  def handle_info(%Phoenix.Socket.Broadcast{event: "presence_diff"}, socket) do
+    users = list_users()
+
+    {:noreply,
+     socket
+     |> assign(:online_session_tokens, online_session_tokens())
+     |> stream(:users, users, reset: true)}
+  end
+
   defp list_users do
     Users.list_users()
+  end
+
+  defp online_session_tokens do
+    Presence.chat_room_topic()
+    |> Presence.list()
+    |> Map.keys()
+    |> MapSet.new()
   end
 end
