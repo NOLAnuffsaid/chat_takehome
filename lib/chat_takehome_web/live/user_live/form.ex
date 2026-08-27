@@ -13,7 +13,7 @@ defmodule ChatTakehomeWeb.UserLive.Form do
         <:subtitle>Use this form to manage user records in your database.</:subtitle>
       </.header>
 
-      <.form for={@form} id="user-form" phx-change="validate" phx-submit="save">
+      <.form for={@form} id="user-form" action={~p"/users"} method="post" phx-change="validate">
         <.input field={@form[:username]} type="text" label="Username" />
         <footer>
           <.button phx-disable-with="Joining Chat..." variant="primary">Join Chat</.button>
@@ -57,36 +57,6 @@ defmodule ChatTakehomeWeb.UserLive.Form do
   def handle_event("validate", %{"user" => user_params}, socket) do
     changeset = Users.change_user(socket.assigns.user, user_params)
     {:noreply, assign(socket, form: to_form(changeset, action: :validate))}
-  end
-
-  def handle_event("save", %{"user" => user_params}, socket) do
-    save_user(socket, socket.assigns.live_action, user_params)
-  end
-
-  defp save_user(socket, :edit, user_params) do
-    case Users.update_user(socket.assigns.user, user_params) do
-      {:ok, user} ->
-        {:noreply,
-         socket
-         |> put_flash(:info, "User updated successfully")
-         |> push_navigate(to: return_path(socket.assigns.return_to, user))}
-
-      {:error, %Ecto.Changeset{} = changeset} ->
-        {:noreply, assign(socket, form: to_form(changeset))}
-    end
-  end
-
-  defp save_user(socket, :new, user_params) do
-    case Users.create_user(user_params) do
-      {:ok, user} ->
-        {:noreply,
-         socket
-         |> put_flash(:info, "User created successfully")
-         |> push_navigate(to: return_path(socket.assigns.return_to, user))}
-
-      {:error, %Ecto.Changeset{} = changeset} ->
-        {:noreply, assign(socket, form: to_form(changeset))}
-    end
   end
 
   defp return_path("index", _user), do: ~p"/home"

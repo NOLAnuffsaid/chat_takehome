@@ -19,6 +19,8 @@ defmodule ChatTakehomeWeb.Router do
 
     live "/home", UserLive.Index, :index
     live "/users/new", UserLive.Form, :new
+    live "/chat", ChatRoomLive, :show
+    post "/users", UserSessionController, :create
   end
 
   # Other scopes may use custom stacks.

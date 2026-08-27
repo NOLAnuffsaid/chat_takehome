@@ -4,7 +4,6 @@ defmodule ChatTakehomeWeb.UserLiveTest do
   import Phoenix.LiveViewTest
   import ChatTakehome.UsersFixtures
 
-  @create_attrs %{username: "some username"}
   @invalid_attrs %{username: ""}
   defp create_user(_) do
     user = user_fixture()
@@ -22,7 +21,7 @@ defmodule ChatTakehomeWeb.UserLiveTest do
       assert html =~ user.username
     end
 
-    test "saves new user", %{conn: conn} do
+    test "validates the new-user form", %{conn: conn} do
       {:ok, index_live, _html} = live(conn, ~p"/home")
 
       assert {:ok, form_live, _} =
@@ -37,14 +36,7 @@ defmodule ChatTakehomeWeb.UserLiveTest do
              |> form("#user-form", user: @invalid_attrs)
              |> render_change() =~ "can&#39;t be blank"
 
-      assert {:ok, index_live, _html} =
-               form_live
-               |> form("#user-form", user: @create_attrs)
-               |> render_submit()
-               |> follow_redirect(conn, ~p"/home")
-
-      html = render(index_live)
-      assert html =~ "User created successfully"
+      assert has_element?(form_live, "#user-form[action='/users'][method='post']")
     end
 
     test "deletes user in listing", %{conn: conn, user: user} do
