@@ -5,6 +5,7 @@ defmodule ChatTakehomeWeb.ChatRoomLiveTest do
   import ChatTakehome.UsersFixtures
 
   alias ChatTakehome.Chat
+  alias ChatTakehome.Users
   alias ChatTakehomeWeb.Presence
 
   setup %{conn: conn} do
@@ -36,6 +37,29 @@ defmodule ChatTakehomeWeb.ChatRoomLiveTest do
     conn = build_conn() |> init_test_session(%{})
 
     assert {:error, {:redirect, %{to: "/home"}}} = live(conn, ~p"/chat")
+  end
+
+  test "leaves and rejoins with the same verified user", %{conn: conn, current_user: user} do
+    user_count = length(Users.list_users())
+    {:ok, chat_view, _html} = live(conn, ~p"/chat")
+
+    assert {:ok, home_view, _html} =
+             chat_view
+             |> element("#leave-chat")
+             |> render_click()
+             |> follow_redirect(conn, ~p"/home")
+
+    assert has_element?(home_view, "#rejoin-chat[href='/chat']")
+
+    assert {:ok, rejoined_chat_view, _html} =
+             home_view
+             |> element("#rejoin-chat")
+             |> render_click()
+             |> follow_redirect(conn, ~p"/chat")
+
+    assert has_element?(rejoined_chat_view, "#chat-room")
+    assert length(Users.list_users()) == user_count
+    assert Users.get_user_by_session_token(user.session_token) == user
   end
 
   test "renders saved messages", %{conn: conn} do
