@@ -42,6 +42,15 @@ defmodule ChatTakehomeWeb.UserLiveTest do
       assert has_element?(form_live, "#user-form[action='/users'][method='post']")
     end
 
+    test "offers a verified user a direct chat re-entry", %{conn: conn, user: user} do
+      conn = init_test_session(conn, %{"session_token" => user.session_token})
+
+      {:ok, index_live, _html} = live(conn, ~p"/home")
+
+      assert has_element?(index_live, "#rejoin-chat[href='/chat']")
+      refute has_element?(index_live, "#join-chat")
+    end
+
     test "deletes user in listing", %{conn: conn, user: user} do
       {:ok, index_live, _html} = live(conn, ~p"/home")
 

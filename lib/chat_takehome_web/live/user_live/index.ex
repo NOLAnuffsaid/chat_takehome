@@ -11,7 +11,15 @@ defmodule ChatTakehomeWeb.UserLive.Index do
       <.header>
         Listing Users
         <:actions>
-          <.button variant="primary" navigate={~p"/users/new"}>
+          <.button :if={@current_user} id="rejoin-chat" variant="primary" navigate={~p"/chat"}>
+            Rejoin Chat
+          </.button>
+          <.button
+            :if={is_nil(@current_user)}
+            id="join-chat"
+            variant="primary"
+            navigate={~p"/users/new"}
+          >
             Join Chat
           </.button>
         </:actions>
