@@ -72,4 +72,13 @@ defmodule ChatTakehomeWeb.ChatRoomLiveTest do
     assert message.user == sender
     assert has_element?(recipient_view, "#messages-#{message.id}")
   end
+
+  test "lists the connected user as online", %{conn: conn} do
+    user = user_fixture()
+    conn = init_test_session(conn, %{"session_token" => user.session_token})
+
+    {:ok, view, _html} = live(conn, ~p"/chat")
+
+    assert has_element?(view, "#online-user-#{user.id}", user.username)
+  end
 end

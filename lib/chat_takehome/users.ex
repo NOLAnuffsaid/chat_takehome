@@ -47,6 +47,18 @@ defmodule ChatTakehome.Users do
   def get_user_by_session_token(_session_token), do: nil
 
   @doc """
+  Lists users with one of the given session tokens.
+  """
+  def list_users_by_session_tokens([]), do: []
+
+  def list_users_by_session_tokens(session_tokens) do
+    User
+    |> where([user], user.session_token in ^session_tokens)
+    |> order_by([user], asc: user.username)
+    |> Repo.all()
+  end
+
+  @doc """
   Creates a user.
 
   ## Examples

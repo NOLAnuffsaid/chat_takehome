@@ -89,6 +89,40 @@ defmodule ChatTakehomeWeb.ChatRoomLive do
           >
             <p class="text-sm text-base-content/60">Join the chat to send a message.</p>
           </div>
+
+          <aside id="online-users" class="border-t border-base-300 bg-base-200/30 px-6 py-5 sm:px-8">
+            <div class="flex items-center justify-between gap-4">
+              <div>
+                <p class="text-sm font-semibold">Online now</p>
+                <p class="text-xs text-base-content/60">{length(@online_users)} in the room</p>
+              </div>
+              <.icon name="hero-user-group" class="size-5 text-base-content/50" />
+            </div>
+
+            <p
+              :if={@online_users == []}
+              id="online-users-empty"
+              class="mt-4 text-sm text-base-content/60"
+            >
+              No one is online yet.
+            </p>
+
+            <ul
+              :if={@online_users != []}
+              id="online-users-list"
+              class="mt-4 grid gap-2 sm:grid-cols-2"
+            >
+              <li
+                :for={user <- @online_users}
+                id={"online-user-#{user.id}"}
+                class="flex items-center gap-2 text-sm"
+              >
+                <.icon name="hero-check-circle" class="size-4 shrink-0 text-success" />
+                <span>{user.username}</span>
+                <span class="sr-only">Online</span>
+              </li>
+            </ul>
+          </aside>
         </section>
       </main>
     </Layouts.app>
@@ -116,6 +150,7 @@ defmodule ChatTakehomeWeb.ChatRoomLive do
     {:ok,
      socket
      |> assign(:current_user, current_user)
+     |> assign(:online_users, online_users())
      |> assign(:page_title, "Chat")
      |> assign(:form, new_message_form())
      |> stream(:messages, Chat.list_messages())}
@@ -158,12 +193,19 @@ defmodule ChatTakehomeWeb.ChatRoomLive do
   end
 
   def handle_info(%Phoenix.Socket.Broadcast{event: "presence_diff"}, socket) do
-    {:noreply, socket}
+    {:noreply, assign(socket, :online_users, online_users())}
   end
 
   defp new_message_form do
     %Message{}
     |> Chat.change_message()
     |> to_form()
+  end
+
+  defp online_users do
+    Presence.chat_room_topic()
+    |> Presence.list()
+    |> Map.keys()
+    |> Users.list_users_by_session_tokens()
   end
 end

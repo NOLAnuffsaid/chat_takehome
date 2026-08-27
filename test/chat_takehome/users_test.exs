@@ -27,6 +27,13 @@ defmodule ChatTakehome.UsersTest do
       assert Users.get_user_by_session_token("missing-token") == nil
     end
 
+    test "list_users_by_session_tokens/1 returns matching users" do
+      user = user_fixture()
+
+      assert Users.list_users_by_session_tokens([user.session_token]) == [user]
+      assert Users.list_users_by_session_tokens([]) == []
+    end
+
     test "create_user/1 with valid data creates a user" do
       valid_attrs = %{username: "some username"}
 
