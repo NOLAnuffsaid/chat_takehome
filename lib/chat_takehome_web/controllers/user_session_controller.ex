@@ -22,10 +22,24 @@ defmodule ChatTakehomeWeb.UserSessionController do
         |> put_flash(:info, "Welcome to the chat, #{user.username}!")
         |> redirect(to: ~p"/chat")
 
-      {:error, %Ecto.Changeset{}} ->
+      {:error, changeset} ->
         conn
-        |> put_flash(:error, "Please choose a valid username.")
+        |> put_flash(:error, join_error_message(changeset))
         |> redirect(to: ~p"/users/new")
+    end
+  end
+
+  defp join_error_message(changeset) do
+    case Keyword.get(changeset.errors, :username) do
+      {_message, metadata} when is_list(metadata) ->
+        if Keyword.get(metadata, :constraint) == :unique do
+          "That username is already in use. Choose another."
+        else
+          "Please choose a valid username."
+        end
+
+      _other ->
+        "Please choose a valid username."
     end
   end
 end

@@ -23,6 +23,21 @@ defmodule ChatTakehomeWeb.UserSessionControllerTest do
     assert get_session(conn, :session_token) == nil
   end
 
+  test "does not allow a visitor to claim an existing username", %{conn: conn} do
+    username = "Ada Lovelace #{System.unique_integer([:positive])}"
+    user = user_fixture(%{username: username})
+
+    conn = post(conn, ~p"/users", user: %{username: String.downcase(username)})
+
+    assert redirected_to(conn) == ~p"/users/new"
+    assert get_session(conn, :session_token) == nil
+
+    assert Phoenix.Flash.get(conn.assigns.flash, :error) ==
+             "That username is already in use. Choose another."
+
+    assert Users.get_user!(user.id).username == username
+  end
+
   test "keeps an existing verified user instead of creating another", %{conn: conn} do
     user = user_fixture()
     user_count = length(Users.list_users())

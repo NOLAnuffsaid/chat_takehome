@@ -12,7 +12,7 @@ defmodule ChatTakehome.UsersFixtures do
       attrs
       |> Enum.into(%{
         session_token: "some session_token",
-        username: "some username"
+        username: "user-#{System.unique_integer([:positive])}"
       })
       |> ChatTakehome.Users.create_user()
 

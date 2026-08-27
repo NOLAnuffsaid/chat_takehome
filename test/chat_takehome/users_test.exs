@@ -45,6 +45,18 @@ defmodule ChatTakehome.UsersTest do
       assert {:error, %Ecto.Changeset{}} = Users.create_user(@invalid_attrs)
     end
 
+    test "create_user/1 rejects case-insensitive duplicate usernames" do
+      username = "Ada Lovelace #{System.unique_integer([:positive])}"
+
+      assert {:ok, _user} = Users.create_user(%{username: username})
+
+      assert {:error, changeset} =
+               Users.create_user(%{username: "  #{String.downcase(username)}  "})
+
+      assert {"has already been taken", metadata} = Keyword.fetch!(changeset.errors, :username)
+      assert Keyword.fetch!(metadata, :constraint) == :unique
+    end
+
     test "delete_user/1 deletes the user" do
       user = user_fixture()
       assert {:ok, %User{}} = Users.delete_user(user)

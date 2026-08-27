@@ -22,6 +22,7 @@ defmodule ChatTakehome.Users.User do
     |> put_change(:session_token, Ecto.UUID.generate())
     |> validate_required([:session_token])
     |> validate_length(:session_token, min: 1)
+    |> unique_constraint(:username, name: :unique_lowercase_username)
     |> unique_constraint(:session_token, name: :unique_session_token)
   end
 end
