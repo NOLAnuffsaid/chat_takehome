@@ -5,6 +5,7 @@ defmodule ChatTakehomeWeb.ChatRoomLiveTest do
   import ChatTakehome.UsersFixtures
 
   alias ChatTakehome.Chat
+  alias ChatTakehome.Repo
   alias ChatTakehome.Users
   alias ChatTakehomeWeb.Presence
 
@@ -188,5 +189,28 @@ defmodule ChatTakehomeWeb.ChatRoomLiveTest do
     assert_receive %Phoenix.Socket.Broadcast{event: "presence_diff"}
     _ = :sys.get_state(view.pid)
     refute has_element?(view, "#online-user-#{joining_user.id}")
+  end
+
+  test "loads older messages", %{conn: conn, current_user: user} do
+    messages =
+      for offset <- 1..51 do
+        {:ok, message} = Chat.create_message(user, %{body: "Paged message #{offset}"})
+
+        Repo.update!(
+          Ecto.Changeset.change(message, sent_at: DateTime.add(~U[2100-01-01 00:00:00Z], offset))
+        )
+      end
+
+    oldest_message = Enum.at(messages, 0)
+    {:ok, view, _html} = live(conn, ~p"/chat")
+
+    assert has_element?(view, "#load-earlier-messages")
+    refute has_element?(view, "#messages-#{oldest_message.id}")
+
+    view
+    |> element("#load-earlier-messages")
+    |> render_click()
+
+    assert has_element?(view, "#messages-#{oldest_message.id}")
   end
 end

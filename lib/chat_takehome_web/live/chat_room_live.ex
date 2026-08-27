@@ -32,6 +32,21 @@ defmodule ChatTakehomeWeb.ChatRoomLive do
             </.link>
           </header>
 
+          <div
+            :if={@has_more_messages?}
+            class="border-b border-base-300 px-6 py-3 text-center sm:px-8"
+          >
+            <button
+              id="load-earlier-messages"
+              type="button"
+              phx-click="load_earlier_messages"
+              phx-disable-with="Loading earlier messages..."
+              class="text-sm font-medium text-primary transition hover:text-primary/80"
+            >
+              Load earlier messages
+            </button>
+          </div>
+
           <div id="messages" class="min-h-80 space-y-4 px-6 py-8 sm:px-8" phx-update="stream">
             <div id="chat-history-empty" class="hidden py-16 text-center only:block">
               <div class="mx-auto mb-5 flex size-16 items-center justify-center rounded-full bg-primary/10 text-primary">
@@ -132,6 +147,7 @@ defmodule ChatTakehomeWeb.ChatRoomLive do
   @impl true
   def mount(_params, _session, socket) do
     current_user = socket.assigns.current_user
+    {messages, has_more_messages?} = Chat.list_message_page()
 
     socket =
       if connected?(socket) do
@@ -151,7 +167,9 @@ defmodule ChatTakehomeWeb.ChatRoomLive do
      |> assign(:online_users, online_users())
      |> assign(:page_title, "Chat")
      |> assign(:form, new_message_form())
-     |> stream(:messages, Chat.list_messages())}
+     |> assign(:has_more_messages?, has_more_messages?)
+     |> assign(:oldest_message, List.first(messages))
+     |> stream(:messages, messages)}
   end
 
   @impl true
@@ -185,9 +203,30 @@ defmodule ChatTakehomeWeb.ChatRoomLive do
     {:noreply, put_flash(socket, :error, "Join the chat before sending a message.")}
   end
 
+  def handle_event("load_earlier_messages", _params, socket) do
+    case socket.assigns.oldest_message do
+      nil ->
+        {:noreply, assign(socket, :has_more_messages?, false)}
+
+      oldest_message ->
+        {messages, has_more_messages?} = Chat.list_message_page_before(oldest_message)
+
+        {:noreply,
+         socket
+         |> assign(:has_more_messages?, has_more_messages?)
+         |> assign(:oldest_message, List.first(messages) || oldest_message)
+         |> stream(:messages, messages, at: 0)}
+    end
+  end
+
   @impl true
   def handle_info({:message_created, message}, socket) do
-    {:noreply, stream_insert(socket, :messages, message)}
+    oldest_message = socket.assigns.oldest_message || message
+
+    {:noreply,
+     socket
+     |> assign(:oldest_message, oldest_message)
+     |> stream_insert(:messages, message)}
   end
 
   def handle_info(%Phoenix.Socket.Broadcast{event: "presence_diff"}, socket) do
