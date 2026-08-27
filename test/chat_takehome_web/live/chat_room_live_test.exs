@@ -21,6 +21,7 @@ defmodule ChatTakehomeWeb.ChatRoomLiveTest do
 
     assert has_element?(view, "#chat-room")
     assert has_element?(view, "#leave-chat[href='/home']")
+    assert has_element?(view, "#messages.h-\\[28rem\\].overflow-y-auto")
   end
 
   test "tracks the verified session token after connecting", %{
@@ -145,13 +146,25 @@ defmodule ChatTakehomeWeb.ChatRoomLiveTest do
     assert has_element?(recipient_view, "#messages-#{message.id}")
   end
 
-  test "lists the connected user as online", %{conn: conn} do
+  test "lists the connected user with an online status", %{conn: conn} do
     user = user_fixture()
     conn = init_test_session(conn, %{"session_token" => user.session_token})
 
     {:ok, view, _html} = live(conn, ~p"/chat")
 
-    assert has_element?(view, "#online-user-#{user.id}", user.username)
+    assert has_element?(view, "#chat-user-#{user.id}", user.username)
+    assert has_element?(view, "#chat-user-#{user.id} .hero-check-circle")
+    assert has_element?(view, "#chat-user-#{user.id}", "Online")
+  end
+
+  test "lists offline users with an offline status", %{conn: conn} do
+    offline_user = user_fixture()
+
+    {:ok, view, _html} = live(conn, ~p"/chat")
+
+    assert has_element?(view, "#chat-user-#{offline_user.id}", offline_user.username)
+    assert has_element?(view, "#chat-user-#{offline_user.id} .hero-minus-circle")
+    assert has_element?(view, "#chat-user-#{offline_user.id}", "Offline")
   end
 
   test "shows persisted history to a later user session", %{conn: conn} do
@@ -165,7 +178,7 @@ defmodule ChatTakehomeWeb.ChatRoomLiveTest do
     assert has_element?(view, "#messages-#{message.id}")
   end
 
-  test "updates the online-user list as another user joins and leaves", %{conn: conn} do
+  test "updates a user's status as they join and leave", %{conn: conn} do
     current_user = user_fixture()
     joining_user = user_fixture()
     conn = init_test_session(conn, %{"session_token" => current_user.session_token})
@@ -183,13 +196,15 @@ defmodule ChatTakehomeWeb.ChatRoomLiveTest do
 
     assert_receive %Phoenix.Socket.Broadcast{event: "presence_diff"}
     _ = :sys.get_state(view.pid)
-    assert has_element?(view, "#online-user-#{joining_user.id}", joining_user.username)
+    assert has_element?(view, "#chat-user-#{joining_user.id}", joining_user.username)
+    assert has_element?(view, "#chat-user-#{joining_user.id}", "Online")
 
     assert :ok = Presence.untrack(self(), Presence.chat_room_topic(), joining_user.session_token)
 
     assert_receive %Phoenix.Socket.Broadcast{event: "presence_diff"}
     _ = :sys.get_state(view.pid)
-    refute has_element?(view, "#online-user-#{joining_user.id}")
+    assert has_element?(view, "#chat-user-#{joining_user.id}", "Offline")
+    assert has_element?(view, "#chat-user-#{joining_user.id} .hero-minus-circle")
   end
 
   test "loads older messages", %{conn: conn, current_user: user} do

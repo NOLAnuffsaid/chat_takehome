@@ -49,7 +49,7 @@ defmodule ChatTakehomeWeb.ChatRoomLive do
 
           <div
             id="messages"
-            class="min-h-80 max-h-[28rem] space-y-4 overflow-y-auto px-6 py-8 sm:px-8"
+            class="h-[28rem] space-y-4 overflow-y-auto px-6 py-8 sm:px-8"
             phx-hook="ChatMessages"
             phx-update="stream"
           >
@@ -123,36 +123,45 @@ defmodule ChatTakehomeWeb.ChatRoomLive do
             <p class="text-sm text-base-content/60">Join the chat to send a message.</p>
           </div>
 
-          <aside id="online-users" class="border-t border-base-300 bg-base-200/30 px-6 py-5 sm:px-8">
+          <aside id="chat-users" class="border-t border-base-300 bg-base-200/30 px-6 py-5 sm:px-8">
             <div class="flex items-center justify-between gap-4">
               <div>
-                <p class="text-sm font-semibold">Online now</p>
-                <p class="text-xs text-base-content/60">{length(@online_users)} in the room</p>
+                <p class="text-sm font-semibold">People</p>
+                <p class="text-xs text-base-content/60">{length(@users)} joined the chat</p>
               </div>
               <.icon name="hero-user-group" class="size-5 text-base-content/50" />
             </div>
 
             <p
-              :if={@online_users == []}
-              id="online-users-empty"
+              :if={@users == []}
+              id="chat-users-empty"
               class="mt-4 text-sm text-base-content/60"
             >
-              No one is online yet.
+              No one has joined the chat yet.
             </p>
 
             <ul
-              :if={@online_users != []}
-              id="online-users-list"
+              :if={@users != []}
+              id="chat-users-list"
               class="mt-4 grid gap-2 sm:grid-cols-2"
             >
               <li
-                :for={user <- @online_users}
-                id={"online-user-#{user.id}"}
+                :for={user <- @users}
+                id={"chat-user-#{user.id}"}
                 class="flex items-center gap-2 text-sm"
               >
-                <.icon name="hero-check-circle" class="size-4 shrink-0 text-success" />
+                <.icon
+                  name={status_icon(user, @online_session_tokens)}
+                  class={[
+                    "size-4 shrink-0",
+                    if(online?(user, @online_session_tokens),
+                      do: "text-success",
+                      else: "text-base-content/35"
+                    )
+                  ]}
+                />
                 <span>{user.username}</span>
-                <span class="sr-only">Online</span>
+                <span class="sr-only">{status_label(user, @online_session_tokens)}</span>
               </li>
             </ul>
           </aside>
@@ -182,7 +191,8 @@ defmodule ChatTakehomeWeb.ChatRoomLive do
     {:ok,
      socket
      |> assign(:current_user, current_user)
-     |> assign(:online_users, online_users())
+     |> assign(:users, Users.list_users())
+     |> assign(:online_session_tokens, online_session_tokens())
      |> assign(:page_title, "Chat")
      |> assign(:form, new_message_form())
      |> assign(:has_more_messages?, has_more_messages?)
@@ -248,7 +258,10 @@ defmodule ChatTakehomeWeb.ChatRoomLive do
   end
 
   def handle_info(%Phoenix.Socket.Broadcast{event: "presence_diff"}, socket) do
-    {:noreply, assign(socket, :online_users, online_users())}
+    {:noreply,
+     socket
+     |> assign(:users, Users.list_users())
+     |> assign(:online_session_tokens, online_session_tokens())}
   end
 
   defp new_message_form do
@@ -257,10 +270,22 @@ defmodule ChatTakehomeWeb.ChatRoomLive do
     |> to_form()
   end
 
-  defp online_users do
+  defp online_session_tokens do
     Presence.chat_room_topic()
     |> Presence.list()
     |> Map.keys()
-    |> Users.list_users_by_session_tokens()
+    |> MapSet.new()
+  end
+
+  defp online?(user, online_session_tokens) do
+    MapSet.member?(online_session_tokens, user.session_token)
+  end
+
+  defp status_icon(user, online_session_tokens) do
+    if online?(user, online_session_tokens), do: "hero-check-circle", else: "hero-minus-circle"
+  end
+
+  defp status_label(user, online_session_tokens) do
+    if online?(user, online_session_tokens), do: "Online", else: "Offline"
   end
 end
