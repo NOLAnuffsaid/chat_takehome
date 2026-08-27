@@ -26,6 +26,7 @@ defmodule ChatTakehome.Chat do
     %Message{user_id: user.id, sent_at: DateTime.utc_now() |> DateTime.truncate(:second)}
     |> Message.changeset(attrs)
     |> Repo.insert()
+    |> preload_message_user()
   end
 
   @doc """
@@ -34,4 +35,7 @@ defmodule ChatTakehome.Chat do
   def change_message(%Message{} = message, attrs \\ %{}) do
     Message.changeset(message, attrs)
   end
+
+  defp preload_message_user({:ok, message}), do: {:ok, Repo.preload(message, :user)}
+  defp preload_message_user({:error, changeset}), do: {:error, changeset}
 end

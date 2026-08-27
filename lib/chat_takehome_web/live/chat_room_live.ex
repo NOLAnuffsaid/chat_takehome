@@ -1,6 +1,7 @@
 defmodule ChatTakehomeWeb.ChatRoomLive do
   use ChatTakehomeWeb, :live_view
 
+  alias ChatTakehome.Chat
   alias ChatTakehome.Users
   alias ChatTakehomeWeb.Presence
 
@@ -29,14 +30,30 @@ defmodule ChatTakehomeWeb.ChatRoomLive do
             </.link>
           </header>
 
-          <div class="flex min-h-80 flex-col items-center justify-center px-6 py-16 text-center sm:px-8">
-            <div class="mb-5 flex size-16 items-center justify-center rounded-full bg-primary/10 text-primary">
-              <.icon name="hero-chat-bubble-oval-left-ellipsis" class="size-8" />
+          <div id="messages" class="min-h-80 space-y-4 px-6 py-8 sm:px-8" phx-update="stream">
+            <div id="chat-history-empty" class="hidden py-16 text-center only:block">
+              <div class="mx-auto mb-5 flex size-16 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <.icon name="hero-chat-bubble-oval-left-ellipsis" class="size-8" />
+              </div>
+              <h2 class="text-lg font-semibold">The room is ready</h2>
+              <p class="mx-auto mt-2 max-w-sm text-sm leading-6 text-base-content/65">
+                Be the first to start the conversation.
+              </p>
             </div>
-            <h2 class="text-lg font-semibold">The room is ready</h2>
-            <p class="mt-2 max-w-sm text-sm leading-6 text-base-content/65">
-              Messages and online participants will appear here as the chat grows.
-            </p>
+
+            <article
+              :for={{id, message} <- @streams.messages}
+              id={id}
+              class="rounded-2xl border border-base-300 bg-base-200/40 px-4 py-3"
+            >
+              <header class="flex items-baseline justify-between gap-4">
+                <p class="font-medium">{message.user.username}</p>
+                <time class="shrink-0 text-xs text-base-content/55" datetime={message.sent_at}>
+                  {Calendar.strftime(message.sent_at, "%b %-d, %Y %H:%M UTC")}
+                </time>
+              </header>
+              <p class="mt-1 whitespace-pre-wrap break-words text-sm leading-6">{message.body}</p>
+            </article>
           </div>
         </section>
       </main>
@@ -45,12 +62,18 @@ defmodule ChatTakehomeWeb.ChatRoomLive do
   end
 
   @impl true
-  def mount(_params, %{"session_token" => session_token}, socket) do
+  def mount(_params, session, socket) do
+    session_token = session["session_token"]
     current_user = Users.get_user_by_session_token(session_token)
 
     socket =
       if connected?(socket) do
-        {:ok, _ref} = Presence.track(self(), Presence.chat_room_topic(), session_token, %{})
+        Phoenix.PubSub.subscribe(ChatTakehome.PubSub, Presence.chat_room_topic())
+
+        if session_token do
+          {:ok, _ref} = Presence.track(self(), Presence.chat_room_topic(), session_token, %{})
+        end
+
         socket
       else
         socket
@@ -59,13 +82,16 @@ defmodule ChatTakehomeWeb.ChatRoomLive do
     {:ok,
      socket
      |> assign(:current_user, current_user)
-     |> assign(:page_title, "Chat")}
+     |> assign(:page_title, "Chat")
+     |> stream(:messages, Chat.list_messages())}
   end
 
-  def mount(_params, _session, socket) do
-    {:ok,
-     socket
-     |> assign(:current_user, nil)
-     |> assign(:page_title, "Chat")}
+  @impl true
+  def handle_info({:message_created, message}, socket) do
+    {:noreply, stream_insert(socket, :messages, message)}
+  end
+
+  def handle_info(%Phoenix.Socket.Broadcast{event: "presence_diff"}, socket) do
+    {:noreply, socket}
   end
 end
