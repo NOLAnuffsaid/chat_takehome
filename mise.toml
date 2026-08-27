@@ -1,0 +1,70 @@
+[tools]
+elixir = "1.20.0-otp-29"
+
+[env]
+DATABASE_USER = "AHEAD_USER"
+DATABASE_PASSWORD = "us3r-ah34D"
+DATABASE_NAME = "ahead_chat_dev"
+
+[shell_alias]
+dbmig = "mise db:migrate"
+dbrs = "mise db:reset"
+precmt = "mise pre-commit"
+
+
+[tasks."db:reset"]
+description = "Resets the data in the database. Drops, creates, and migrates the database for a fresh start."
+run = "mix ecto.reset"
+
+[tasks."db:migrate"]
+description = "Runs all available migrations"
+run = "mix ecto.migrate"
+
+[tasks."db:start"]
+description = "Starts database server"
+run = [
+	"podman-compose up -d",
+	{ task = "db:migrate" }
+]
+
+[tasks.test]
+description = "Runs all application tests"
+run = "mix test"
+
+[tasks.organize]
+description = "Run mix format on project"
+run = [
+	"mix deps.get",
+	"mix format",
+	"mix credo --strict",
+	"mix compile --warnings-as-errors"
+]
+
+[tasks.pre-commit]
+description = "Auto-format, fix, and restage Elixir code changes"
+run = """
+#!/usr/bin/env bash
+# Filter out deleted files and extract only Elixir extensions (.ex, .exs, .heex)
+elixir_staged=$(echo "$STAGED" | tr ' ' '\n' | grep -E '\\.(ex|exs|heex)$' | tr '\n' ' ')
+
+if [ -n "$elixir_staged" ]; then
+  echo "Formatting and fixing Elixir files..."
+  
+  # 1. Run formatter to overwrite formatting issues inline
+  mix format $elixir_staged
+  
+  # 2. Automatically fix style refactors if you use Credo (requires Credo v1.7+)
+  if mix help credo >/dev/null 2>&1; then
+    mix credo --strict
+  fi
+  
+  # 3. CRITICAL: Restage the modified files so the formatting changes are included
+  git add $elixir_staged
+else
+  echo "No Elixir files staged for this commit."
+fi
+
+# Run compilation check to ensure the automated fixes did not break anything
+mix compile --warnings-as-errors
+"""
+
