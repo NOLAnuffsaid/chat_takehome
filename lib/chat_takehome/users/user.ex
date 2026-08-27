@@ -7,6 +7,7 @@ defmodule ChatTakehome.Users.User do
   schema "users" do
     field :username, :string
     field :session_token, :string
+    has_many :messages, ChatTakehome.Chat.Message
 
     timestamps(type: :utc_datetime)
   end
