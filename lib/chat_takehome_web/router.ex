@@ -18,6 +18,8 @@ defmodule ChatTakehomeWeb.Router do
   scope "/", ChatTakehomeWeb do
     pipe_through :browser
 
+    get "/", HomeController, :index
+
     live_session :current_user,
       on_mount: [{ChatTakehomeWeb.UserAuth, :mount_current_user}] do
       live "/home", UserLive.Index, :index
