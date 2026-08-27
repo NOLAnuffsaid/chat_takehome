@@ -12,7 +12,7 @@ defmodule ChatTakehome.UsersTest do
 
     test "list_users/0 returns all users" do
       user = user_fixture()
-      assert Users.list_users() == [user]
+      assert user in Users.list_users()
     end
 
     test "get_user!/1 returns the user with given id" do

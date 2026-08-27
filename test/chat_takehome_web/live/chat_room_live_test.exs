@@ -7,5 +7,6 @@ defmodule ChatTakehomeWeb.ChatRoomLiveTest do
     {:ok, view, _html} = live(conn, ~p"/chat")
 
     assert has_element?(view, "#chat-room")
+    assert has_element?(view, "#leave-chat[href='/home']")
   end
 end
