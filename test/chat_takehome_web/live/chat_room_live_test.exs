@@ -46,4 +46,30 @@ defmodule ChatTakehomeWeb.ChatRoomLiveTest do
     _ = :sys.get_state(view.pid)
     assert has_element?(view, "#messages-#{message.id}")
   end
+
+  test "sends a persisted message to other connected clients", %{conn: conn} do
+    sender = user_fixture()
+    recipient = user_fixture()
+    body = "Live message #{System.unique_integer([:positive])}"
+
+    sender_conn = init_test_session(conn, %{"session_token" => sender.session_token})
+
+    recipient_conn =
+      init_test_session(build_conn(), %{"session_token" => recipient.session_token})
+
+    {:ok, sender_view, _html} = live(sender_conn, ~p"/chat")
+    {:ok, recipient_view, _html} = live(recipient_conn, ~p"/chat")
+
+    assert has_element?(sender_view, "#message-form")
+
+    sender_view
+    |> form("#message-form", message: %{body: body})
+    |> render_submit()
+
+    _ = :sys.get_state(recipient_view.pid)
+    message = Enum.find(Chat.list_messages(), &(&1.body == body))
+
+    assert message.user == sender
+    assert has_element?(recipient_view, "#messages-#{message.id}")
+  end
 end

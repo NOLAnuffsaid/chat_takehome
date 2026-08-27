@@ -2,7 +2,9 @@ defmodule ChatTakehomeWeb.ChatRoomLive do
   use ChatTakehomeWeb, :live_view
 
   alias ChatTakehome.Chat
+  alias ChatTakehome.Chat.Message
   alias ChatTakehome.Users
+  alias ChatTakehome.Users.User
   alias ChatTakehomeWeb.Presence
 
   @impl true
@@ -55,6 +57,38 @@ defmodule ChatTakehomeWeb.ChatRoomLive do
               <p class="mt-1 whitespace-pre-wrap break-words text-sm leading-6">{message.body}</p>
             </article>
           </div>
+
+          <div :if={@current_user} class="border-t border-base-300 bg-base-200/30 px-6 py-5 sm:px-8">
+            <.form
+              for={@form}
+              id="message-form"
+              phx-change="validate_message"
+              phx-submit="send_message"
+            >
+              <div class="flex items-end gap-3">
+                <div class="min-w-0 flex-1">
+                  <.input
+                    field={@form[:body]}
+                    type="text"
+                    label="Message"
+                    placeholder="Write a message..."
+                    autocomplete="off"
+                  />
+                </div>
+                <.button id="send-message" phx-disable-with="Sending..." variant="primary">
+                  <.icon name="hero-paper-airplane" class="size-4" /> Send
+                </.button>
+              </div>
+            </.form>
+          </div>
+
+          <div
+            :if={is_nil(@current_user)}
+            id="message-sign-in-required"
+            class="border-t border-base-300 px-6 py-5 sm:px-8"
+          >
+            <p class="text-sm text-base-content/60">Join the chat to send a message.</p>
+          </div>
         </section>
       </main>
     </Layouts.app>
@@ -83,7 +117,39 @@ defmodule ChatTakehomeWeb.ChatRoomLive do
      socket
      |> assign(:current_user, current_user)
      |> assign(:page_title, "Chat")
+     |> assign(:form, new_message_form())
      |> stream(:messages, Chat.list_messages())}
+  end
+
+  @impl true
+  def handle_event("validate_message", %{"message" => message_params}, socket) do
+    changeset = Chat.change_message(%Message{}, message_params)
+
+    {:noreply, assign(socket, :form, to_form(changeset, action: :validate))}
+  end
+
+  def handle_event(
+        "send_message",
+        %{"message" => message_params},
+        %{assigns: %{current_user: %User{} = user}} = socket
+      ) do
+    case Chat.create_message(user, message_params) do
+      {:ok, message} ->
+        Phoenix.PubSub.broadcast(
+          ChatTakehome.PubSub,
+          Presence.chat_room_topic(),
+          {:message_created, message}
+        )
+
+        {:noreply, assign(socket, :form, new_message_form())}
+
+      {:error, changeset} ->
+        {:noreply, assign(socket, :form, to_form(changeset, action: :insert))}
+    end
+  end
+
+  def handle_event("send_message", _params, socket) do
+    {:noreply, put_flash(socket, :error, "Join the chat before sending a message.")}
   end
 
   @impl true
@@ -93,5 +159,11 @@ defmodule ChatTakehomeWeb.ChatRoomLive do
 
   def handle_info(%Phoenix.Socket.Broadcast{event: "presence_diff"}, socket) do
     {:noreply, socket}
+  end
+
+  defp new_message_form do
+    %Message{}
+    |> Chat.change_message()
+    |> to_form()
   end
 end
