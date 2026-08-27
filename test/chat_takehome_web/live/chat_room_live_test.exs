@@ -101,6 +101,7 @@ defmodule ChatTakehomeWeb.ChatRoomLiveTest do
     {:ok, view, _html} = live(conn, ~p"/chat")
 
     assert has_element?(view, "#messages-#{message.id}")
+    assert has_element?(view, "#message-time-#{message.id}[phx-hook='LocalTime']")
   end
 
   test "streams incoming messages", %{conn: conn} do
@@ -212,5 +213,14 @@ defmodule ChatTakehomeWeb.ChatRoomLiveTest do
     |> render_click()
 
     assert has_element?(view, "#messages-#{oldest_message.id}")
+  end
+
+  test "styles the current user's messages distinctly", %{conn: conn, current_user: user} do
+    {:ok, message} = Chat.create_message(user, %{body: "My message"})
+
+    {:ok, view, _html} = live(conn, ~p"/chat")
+
+    assert has_element?(view, "#messages[phx-hook='ChatMessages']")
+    assert has_element?(view, "#messages-#{message.id}.ml-auto")
   end
 end

@@ -25,11 +25,49 @@ import {LiveSocket} from "phoenix_live_view"
 import {hooks as colocatedHooks} from "phoenix-colocated/chat_takehome"
 import topbar from "../vendor/topbar"
 
+const LocalTime = {
+  mounted() {
+    const date = new Date(this.el.dateTime)
+
+    if (!Number.isNaN(date.valueOf())) {
+      this.el.textContent = new Intl.DateTimeFormat(undefined, {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }).format(date)
+    }
+  },
+}
+
+const ChatMessages = {
+  mounted() {
+    this.wasAtBottom = true
+    this.handleScroll = () => { this.wasAtBottom = this.atBottom() }
+    this.el.addEventListener("scroll", this.handleScroll)
+    this.scrollToBottom()
+  },
+
+  updated() {
+    if (this.wasAtBottom) this.scrollToBottom()
+  },
+
+  destroyed() {
+    this.el.removeEventListener("scroll", this.handleScroll)
+  },
+
+  atBottom() {
+    return this.el.scrollHeight - this.el.scrollTop - this.el.clientHeight < 24
+  },
+
+  scrollToBottom() {
+    requestAnimationFrame(() => this.el.scrollTo({top: this.el.scrollHeight, behavior: "smooth"}))
+  },
+}
+
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
-  hooks: {...colocatedHooks},
+  hooks: {...colocatedHooks, ChatMessages, LocalTime},
 })
 
 // Show progress bar on live navigation and form submits
@@ -80,4 +118,3 @@ if (process.env.NODE_ENV === "development") {
     window.liveReloader = reloader
   })
 }
-

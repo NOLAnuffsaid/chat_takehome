@@ -47,7 +47,12 @@ defmodule ChatTakehomeWeb.ChatRoomLive do
             </button>
           </div>
 
-          <div id="messages" class="min-h-80 space-y-4 px-6 py-8 sm:px-8" phx-update="stream">
+          <div
+            id="messages"
+            class="min-h-80 max-h-[28rem] space-y-4 overflow-y-auto px-6 py-8 sm:px-8"
+            phx-hook="ChatMessages"
+            phx-update="stream"
+          >
             <div id="chat-history-empty" class="hidden py-16 text-center only:block">
               <div class="mx-auto mb-5 flex size-16 items-center justify-center rounded-full bg-primary/10 text-primary">
                 <.icon name="hero-chat-bubble-oval-left-ellipsis" class="size-8" />
@@ -61,11 +66,24 @@ defmodule ChatTakehomeWeb.ChatRoomLive do
             <article
               :for={{id, message} <- @streams.messages}
               id={id}
-              class="rounded-2xl border border-base-300 bg-base-200/40 px-4 py-3"
+              class={[
+                "max-w-[85%] rounded-2xl border px-4 py-3",
+                if(message.user_id == @current_user.id,
+                  do: "ml-auto border-primary/30 bg-primary text-primary-content",
+                  else: "mr-auto border-base-300 bg-base-200/40"
+                )
+              ]}
             >
               <header class="flex items-baseline justify-between gap-4">
                 <p class="font-medium">{message.user.username}</p>
-                <time class="shrink-0 text-xs text-base-content/55" datetime={message.sent_at}>
+                <time
+                  id={"message-time-#{message.id}"}
+                  class="shrink-0 text-xs opacity-70"
+                  datetime={DateTime.to_iso8601(message.sent_at)}
+                  title={Calendar.strftime(message.sent_at, "%b %-d, %Y %H:%M UTC")}
+                  phx-hook="LocalTime"
+                  phx-update="ignore"
+                >
                   {Calendar.strftime(message.sent_at, "%b %-d, %Y %H:%M UTC")}
                 </time>
               </header>
