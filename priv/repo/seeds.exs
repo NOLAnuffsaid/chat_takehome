@@ -1,11 +1,13 @@
-# Script for populating the database. You can run it as:
-#
-#     mix run priv/repo/seeds.exs
-#
-# Inside the script, you can read and write to any of your
-# repositories directly:
-#
-#     ChatTakehome.Repo.insert!(%ChatTakehome.SomeSchema{})
-#
-# We recommend using the bang functions (`insert!`, `update!`
-# and so on) as they will fail if something goes wrong.
+alias ChatTakehome.Repo
+alias ChatTakehome.Users
+alias ChatTakehome.Users.User
+
+for username <- ["Ada Lovelace", "Grace Hopper", "Linus Torvalds", "Margaret Hamilton"] do
+  case Repo.get_by(User, username: username) do
+    nil ->
+      {:ok, _user} = Users.create_user(%{username: username})
+
+    _user ->
+      :ok
+  end
+end
