@@ -51,6 +51,12 @@ defmodule ChatTakehomeWeb.UserLiveTest do
       refute has_element?(index_live, "#join-chat")
     end
 
+    test "redirects a verified user away from the new-user form", %{conn: conn, user: user} do
+      conn = init_test_session(conn, %{"session_token" => user.session_token})
+
+      assert {:error, {:redirect, %{to: "/chat"}}} = live(conn, ~p"/users/new")
+    end
+
     test "deletes user in listing", %{conn: conn, user: user} do
       {:ok, index_live, _html} = live(conn, ~p"/home")
 

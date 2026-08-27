@@ -21,6 +21,13 @@ defmodule ChatTakehomeWeb.Router do
     live_session :current_user,
       on_mount: [{ChatTakehomeWeb.UserAuth, :mount_current_user}] do
       live "/home", UserLive.Index, :index
+    end
+
+    live_session :new_user,
+      on_mount: [
+        {ChatTakehomeWeb.UserAuth, :mount_current_user},
+        {ChatTakehomeWeb.UserAuth, :redirect_if_authenticated}
+      ] do
       live "/users/new", UserLive.Form, :new
     end
 

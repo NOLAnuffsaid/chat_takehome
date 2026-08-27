@@ -3,6 +3,8 @@ defmodule ChatTakehomeWeb.UserSessionControllerTest do
 
   alias ChatTakehome.Users
 
+  import ChatTakehome.UsersFixtures
+
   test "creates a user and stores its session token", %{conn: conn} do
     username = "Ada Lovelace #{System.unique_integer([:positive])}"
     conn = post(conn, ~p"/users", user: %{username: username})
@@ -19,5 +21,17 @@ defmodule ChatTakehomeWeb.UserSessionControllerTest do
 
     assert redirected_to(conn) == ~p"/users/new"
     assert get_session(conn, :session_token) == nil
+  end
+
+  test "keeps an existing verified user instead of creating another", %{conn: conn} do
+    user = user_fixture()
+    user_count = length(Users.list_users())
+    conn = init_test_session(conn, %{"session_token" => user.session_token})
+
+    conn = post(conn, ~p"/users", user: %{username: "another username"})
+
+    assert redirected_to(conn) == ~p"/chat"
+    assert get_session(conn, :session_token) == user.session_token
+    assert length(Users.list_users()) == user_count
   end
 end

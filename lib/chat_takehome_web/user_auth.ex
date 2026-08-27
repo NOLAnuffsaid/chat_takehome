@@ -32,6 +32,16 @@ defmodule ChatTakehomeWeb.UserAuth do
     end
   end
 
+  def on_mount(:redirect_if_authenticated, _params, _session, socket) do
+    case socket.assigns[:current_user] do
+      nil ->
+        {:cont, socket}
+
+      _user ->
+        {:halt, redirect(socket, to: ~p"/chat")}
+    end
+  end
+
   defp current_user(session_token) do
     Users.get_user_by_session_token(session_token)
   end

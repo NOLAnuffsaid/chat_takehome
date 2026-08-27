@@ -2,8 +2,19 @@ defmodule ChatTakehomeWeb.UserSessionController do
   use ChatTakehomeWeb, :controller
 
   alias ChatTakehome.Users
+  alias ChatTakehome.Users.User
 
   def create(conn, %{"user" => user_params}) do
+    case conn.assigns.current_user do
+      %User{} ->
+        redirect(conn, to: ~p"/chat")
+
+      nil ->
+        create_user(conn, user_params)
+    end
+  end
+
+  defp create_user(conn, user_params) do
     case Users.create_user(user_params) do
       {:ok, user} ->
         conn
