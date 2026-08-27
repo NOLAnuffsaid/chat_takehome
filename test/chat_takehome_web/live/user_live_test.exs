@@ -4,6 +4,8 @@ defmodule ChatTakehomeWeb.UserLiveTest do
   import Phoenix.LiveViewTest
   import ChatTakehome.UsersFixtures
 
+  alias ChatTakehomeWeb.Presence
+
   @invalid_attrs %{username: ""}
   defp create_user(_) do
     user = user_fixture()
@@ -45,6 +47,26 @@ defmodule ChatTakehomeWeb.UserLiveTest do
 
       assert index_live |> element("#users-#{user.id} a", "Delete") |> render_click()
       refute has_element?(index_live, "#users-#{user.id}")
+    end
+
+    test "updates a user's status when their presence changes", %{conn: conn, user: user} do
+      {:ok, index_live, _html} = live(conn, ~p"/home")
+      :ok = Phoenix.PubSub.subscribe(ChatTakehome.PubSub, Presence.chat_room_topic())
+
+      assert has_element?(index_live, "#user-status-#{user.id}", "Offline")
+
+      assert {:ok, _ref} =
+               Presence.track(self(), Presence.chat_room_topic(), user.session_token, %{})
+
+      assert_receive %Phoenix.Socket.Broadcast{event: "presence_diff"}
+      _ = :sys.get_state(index_live.pid)
+      assert has_element?(index_live, "#user-status-#{user.id}", "Online")
+
+      assert :ok = Presence.untrack(self(), Presence.chat_room_topic(), user.session_token)
+
+      assert_receive %Phoenix.Socket.Broadcast{event: "presence_diff"}
+      _ = :sys.get_state(index_live.pid)
+      assert has_element?(index_live, "#user-status-#{user.id}", "Offline")
     end
   end
 end
