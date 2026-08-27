@@ -27,5 +27,6 @@ defmodule ChatTakehomeWeb.UserAuthTest do
       |> UserAuth.fetch_current_user([])
 
     assert conn.assigns.current_user == nil
+    assert get_session(conn, :session_token) == nil
   end
 end

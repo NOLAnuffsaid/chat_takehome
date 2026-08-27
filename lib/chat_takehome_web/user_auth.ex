@@ -1,7 +1,7 @@
 defmodule ChatTakehomeWeb.UserAuth do
   use ChatTakehomeWeb, :verified_routes
 
-  import Plug.Conn, only: [assign: 3, get_session: 2]
+  import Plug.Conn, only: [assign: 3, delete_session: 2, get_session: 2]
   import Phoenix.LiveView, only: [put_flash: 3, redirect: 2]
 
   alias ChatTakehome.Users
@@ -11,7 +11,17 @@ defmodule ChatTakehomeWeb.UserAuth do
   def call(conn, :fetch_current_user), do: fetch_current_user(conn, [])
 
   def fetch_current_user(conn, _opts) do
-    assign(conn, :current_user, current_user(get_session(conn, :session_token)))
+    session_token = get_session(conn, :session_token)
+
+    case current_user(session_token) do
+      nil ->
+        conn
+        |> clear_stale_session_token(session_token)
+        |> assign(:current_user, nil)
+
+      user ->
+        assign(conn, :current_user, user)
+    end
   end
 
   def on_mount(:mount_current_user, _params, session, socket) do
@@ -45,4 +55,7 @@ defmodule ChatTakehomeWeb.UserAuth do
   defp current_user(session_token) do
     Users.get_user_by_session_token(session_token)
   end
+
+  defp clear_stale_session_token(conn, nil), do: conn
+  defp clear_stale_session_token(conn, _session_token), do: delete_session(conn, :session_token)
 end
