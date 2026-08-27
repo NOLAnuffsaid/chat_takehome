@@ -81,4 +81,42 @@ defmodule ChatTakehomeWeb.ChatRoomLiveTest do
 
     assert has_element?(view, "#online-user-#{user.id}", user.username)
   end
+
+  test "shows persisted history to a later user session", %{conn: conn} do
+    author = user_fixture()
+    viewer = user_fixture()
+    {:ok, message} = Chat.create_message(author, %{body: "History for future users"})
+    conn = init_test_session(conn, %{"session_token" => viewer.session_token})
+
+    {:ok, view, _html} = live(conn, ~p"/chat")
+
+    assert has_element?(view, "#messages-#{message.id}")
+  end
+
+  test "updates the online-user list as another user joins and leaves", %{conn: conn} do
+    current_user = user_fixture()
+    joining_user = user_fixture()
+    conn = init_test_session(conn, %{"session_token" => current_user.session_token})
+
+    {:ok, view, _html} = live(conn, ~p"/chat")
+    :ok = Phoenix.PubSub.subscribe(ChatTakehome.PubSub, Presence.chat_room_topic())
+
+    assert {:ok, _ref} =
+             Presence.track(
+               self(),
+               Presence.chat_room_topic(),
+               joining_user.session_token,
+               %{}
+             )
+
+    assert_receive %Phoenix.Socket.Broadcast{event: "presence_diff"}
+    _ = :sys.get_state(view.pid)
+    assert has_element?(view, "#online-user-#{joining_user.id}", joining_user.username)
+
+    assert :ok = Presence.untrack(self(), Presence.chat_room_topic(), joining_user.session_token)
+
+    assert_receive %Phoenix.Socket.Broadcast{event: "presence_diff"}
+    _ = :sys.get_state(view.pid)
+    refute has_element?(view, "#online-user-#{joining_user.id}")
+  end
 end
