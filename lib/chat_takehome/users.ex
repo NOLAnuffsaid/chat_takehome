@@ -38,6 +38,15 @@ defmodule ChatTakehome.Users do
   def get_user!(id), do: Repo.get!(User, id)
 
   @doc """
+  Gets a user by session token.
+  """
+  def get_user_by_session_token(session_token) when is_binary(session_token) do
+    Repo.get_by(User, session_token: session_token)
+  end
+
+  def get_user_by_session_token(_session_token), do: nil
+
+  @doc """
   Creates a user.
 
   ## Examples

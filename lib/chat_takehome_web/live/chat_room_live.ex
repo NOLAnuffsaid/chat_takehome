@@ -1,6 +1,7 @@
 defmodule ChatTakehomeWeb.ChatRoomLive do
   use ChatTakehomeWeb, :live_view
 
+  alias ChatTakehome.Users
   alias ChatTakehomeWeb.Presence
 
   @impl true
@@ -45,6 +46,8 @@ defmodule ChatTakehomeWeb.ChatRoomLive do
 
   @impl true
   def mount(_params, %{"session_token" => session_token}, socket) do
+    current_user = Users.get_user_by_session_token(session_token)
+
     socket =
       if connected?(socket) do
         {:ok, _ref} = Presence.track(self(), Presence.chat_room_topic(), session_token, %{})
@@ -53,10 +56,16 @@ defmodule ChatTakehomeWeb.ChatRoomLive do
         socket
       end
 
-    {:ok, assign(socket, :page_title, "Chat")}
+    {:ok,
+     socket
+     |> assign(:current_user, current_user)
+     |> assign(:page_title, "Chat")}
   end
 
   def mount(_params, _session, socket) do
-    {:ok, assign(socket, :page_title, "Chat")}
+    {:ok,
+     socket
+     |> assign(:current_user, nil)
+     |> assign(:page_title, "Chat")}
   end
 end
