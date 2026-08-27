@@ -21,7 +21,24 @@ defmodule ChatTakehomeWeb.UserLive.Index do
         id="users"
         rows={@streams.users}
       >
-        <:col :let={{_id, user}} label="Username">{user.username}</:col>
+        <:col :let={{_id, user}} label="Username">
+          <span class="inline-flex items-center gap-2">
+            <.icon
+              name={status_icon(user, @online_session_tokens)}
+              class={[
+                "size-4 shrink-0",
+                if(online?(user, @online_session_tokens),
+                  do: "text-success",
+                  else: "text-base-content/35"
+                )
+              ]}
+            />
+            <span>{user.username}</span>
+            <span id={"user-status-#{user.id}"} class="sr-only">
+              {status_label(user, @online_session_tokens)}
+            </span>
+          </span>
+        </:col>
         <:action :let={{id, user}}>
           <.link
             phx-click={JS.push("delete", value: %{id: user.id}) |> hide("##{id}")}
@@ -79,5 +96,17 @@ defmodule ChatTakehomeWeb.UserLive.Index do
     |> Presence.list()
     |> Map.keys()
     |> MapSet.new()
+  end
+
+  defp online?(user, online_session_tokens) do
+    MapSet.member?(online_session_tokens, user.session_token)
+  end
+
+  defp status_icon(user, online_session_tokens) do
+    if online?(user, online_session_tokens), do: "hero-check-circle", else: "hero-minus-circle"
+  end
+
+  defp status_label(user, online_session_tokens) do
+    if online?(user, online_session_tokens), do: "Online", else: "Offline"
   end
 end

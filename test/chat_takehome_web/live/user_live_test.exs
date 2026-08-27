@@ -15,10 +15,11 @@ defmodule ChatTakehomeWeb.UserLiveTest do
     setup [:create_user]
 
     test "lists all users", %{conn: conn, user: user} do
-      {:ok, _index_live, html} = live(conn, ~p"/home")
+      {:ok, index_live, html} = live(conn, ~p"/home")
 
       assert html =~ "Listing Users"
       assert html =~ user.username
+      assert has_element?(index_live, "#user-status-#{user.id}", "Offline")
     end
 
     test "validates the new-user form", %{conn: conn} do
