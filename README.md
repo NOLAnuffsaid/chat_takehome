@@ -1,18 +1,45 @@
 # ChatTakehome
 
-To start your Phoenix server:
+A shared chat room built with Elixir, Phoenix LiveView, Ecto, and PostgreSQL.
 
-* Run `mix setup` to install and setup dependencies
-* Start Phoenix endpoint with `mix phx.server` or inside IEx with `iex -S mix phx.server`
+## Prerequisites
 
-Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
+- [Mise](https://mise.jdx.dev/) for the project toolchain and environment variables
+- Podman and `podman-compose` for the local PostgreSQL service
 
-Ready to run in production? Please [check our deployment guides](https://phoenix.hexdocs.pm/deployment.html).
+## Development setup
 
-## Learn more
+`mise.toml` is the source of truth for the local Elixir version and development/test database environment. Before starting the application, update its `[env]` values if your local PostgreSQL credentials or database name differ:
 
-* Official website: https://www.phoenixframework.org/
-* Guides: https://phoenix.hexdocs.pm/overview.html
-* Docs: https://phoenix.hexdocs.pm
-* Forum: https://elixirforum.com/c/phoenix-forum
-* Source: https://github.com/phoenixframework/phoenix
+```toml
+[env]
+DATABASE_USER = "..."
+DATABASE_PASSWORD = "..."
+DATABASE_NAME = "..."
+```
+
+Install the configured Elixir version once:
+
+```sh
+mise install
+```
+
+Then start the full development environment with one command:
+
+```sh
+mise run dev
+```
+
+This task starts PostgreSQL, fetches Elixir dependencies, creates and migrates the database, loads seed users, builds assets, and starts Phoenix. Visit [http://localhost:4000/home](http://localhost:4000/home) to see the user list and join the chat.
+
+The development and test database name is `${DATABASE_NAME}_test`, which Phoenix creates automatically during setup.
+
+## Tests
+
+```sh
+mise run test
+```
+
+## Seed data
+
+Database setup adds four sample users: Ada Lovelace, Grace Hopper, Linus Torvalds, and Margaret Hamilton. They appear as offline until they join the shared chat room.

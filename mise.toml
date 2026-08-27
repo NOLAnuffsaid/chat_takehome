@@ -21,10 +21,15 @@ description = "Runs all available migrations"
 run = "mix ecto.migrate"
 
 [tasks."db:start"]
-description = "Starts database server"
+description = "Starts the local PostgreSQL service"
+run = "podman-compose up -d"
+
+[tasks.dev]
+description = "Starts PostgreSQL, prepares the Phoenix application, and runs the development server"
 run = [
-	"podman-compose up -d",
-	{ task = "db:migrate" }
+	{ task = "db:start" },
+	"mix setup",
+	"mix phx.server"
 ]
 
 [tasks.test]
@@ -67,4 +72,3 @@ fi
 # Run compilation check to ensure the automated fixes did not break anything
 mix compile --warnings-as-errors
 """
-
