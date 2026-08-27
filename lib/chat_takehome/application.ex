@@ -12,6 +12,7 @@ defmodule ChatTakehome.Application do
       ChatTakehome.Repo,
       {DNSCluster, query: Application.get_env(:chat_takehome, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: ChatTakehome.PubSub},
+      ChatTakehomeWeb.Presence,
       # Start a worker by calling: ChatTakehome.Worker.start_link(arg)
       # {ChatTakehome.Worker, arg},
       # Start to serve requests, typically the last entry
