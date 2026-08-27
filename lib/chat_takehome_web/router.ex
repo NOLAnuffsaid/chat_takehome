@@ -5,6 +5,7 @@ defmodule ChatTakehomeWeb.Router do
     plug :accepts, ["html"]
     plug :fetch_session
     plug :fetch_live_flash
+    plug ChatTakehomeWeb.UserAuth, :fetch_current_user
     plug :put_root_layout, html: {ChatTakehomeWeb.Layouts, :root}
     plug :protect_from_forgery
     plug :put_secure_browser_headers
@@ -17,9 +18,20 @@ defmodule ChatTakehomeWeb.Router do
   scope "/", ChatTakehomeWeb do
     pipe_through :browser
 
-    live "/home", UserLive.Index, :index
-    live "/users/new", UserLive.Form, :new
-    live "/chat", ChatRoomLive, :show
+    live_session :current_user,
+      on_mount: [{ChatTakehomeWeb.UserAuth, :mount_current_user}] do
+      live "/home", UserLive.Index, :index
+      live "/users/new", UserLive.Form, :new
+    end
+
+    live_session :authenticated,
+      on_mount: [
+        {ChatTakehomeWeb.UserAuth, :mount_current_user},
+        {ChatTakehomeWeb.UserAuth, :ensure_authenticated}
+      ] do
+      live "/chat", ChatRoomLive, :show
+    end
+
     post "/users", UserSessionController, :create
   end
 

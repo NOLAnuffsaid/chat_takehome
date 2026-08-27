@@ -7,6 +7,13 @@ defmodule ChatTakehomeWeb.ChatRoomLiveTest do
   alias ChatTakehome.Chat
   alias ChatTakehomeWeb.Presence
 
+  setup %{conn: conn} do
+    user = user_fixture()
+
+    {:ok,
+     conn: init_test_session(conn, %{"session_token" => user.session_token}), current_user: user}
+  end
+
   test "renders the chat route", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/chat")
 
@@ -14,13 +21,21 @@ defmodule ChatTakehomeWeb.ChatRoomLiveTest do
     assert has_element?(view, "#leave-chat[href='/home']")
   end
 
-  test "tracks the session token after connecting", %{conn: conn} do
-    session_token = "session-token-#{System.unique_integer([:positive])}"
-    conn = init_test_session(conn, %{"session_token" => session_token})
+  test "tracks the verified session token after connecting", %{
+    conn: conn,
+    current_user: current_user
+  } do
+    session_token = current_user.session_token
 
     {:ok, _view, _html} = live(conn, ~p"/chat")
 
     assert %{^session_token => %{metas: [%{}]}} = Presence.list(Presence.chat_room_topic())
+  end
+
+  test "redirects unauthenticated visitors to home", _context do
+    conn = build_conn() |> init_test_session(%{})
+
+    assert {:error, {:redirect, %{to: "/home"}}} = live(conn, ~p"/chat")
   end
 
   test "renders saved messages", %{conn: conn} do

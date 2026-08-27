@@ -6,6 +6,10 @@ defmodule ChatTakehomeWeb.UserAuth do
 
   alias ChatTakehome.Users
 
+  def init(options), do: options
+
+  def call(conn, :fetch_current_user), do: fetch_current_user(conn, [])
+
   def fetch_current_user(conn, _opts) do
     assign(conn, :current_user, current_user(get_session(conn, :session_token)))
   end
