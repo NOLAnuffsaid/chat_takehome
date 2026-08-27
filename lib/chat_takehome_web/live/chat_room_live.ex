@@ -130,17 +130,15 @@ defmodule ChatTakehomeWeb.ChatRoomLive do
   end
 
   @impl true
-  def mount(_params, session, socket) do
-    session_token = session["session_token"]
-    current_user = Users.get_user_by_session_token(session_token)
+  def mount(_params, _session, socket) do
+    current_user = socket.assigns.current_user
 
     socket =
       if connected?(socket) do
         Phoenix.PubSub.subscribe(ChatTakehome.PubSub, Presence.chat_room_topic())
 
-        if session_token do
-          {:ok, _ref} = Presence.track(self(), Presence.chat_room_topic(), session_token, %{})
-        end
+        {:ok, _ref} =
+          Presence.track(self(), Presence.chat_room_topic(), current_user.session_token, %{})
 
         socket
       else
